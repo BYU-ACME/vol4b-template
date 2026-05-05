@@ -1,0 +1,71 @@
+{
+  // Name and pull image
+  "name": "Vol 4 Second Container",
+  "image": "ghcr.io/byu-acme/vol4-second-container:latest",
+  "containerName": "vol4-second-container",
+  "workspaceFolder": "/workspaces",
+
+  // Run once on container creation: register a deterministic kernel.
+  "postCreateCommand": "python -m ipykernel install --user --name acme --display-name \"ACME Python\"",
+
+  // Run every start: safe.directory + watchdog (patient: default 300s)
+  "postStartCommand": "git config --global --add safe.directory '*' || true"
+,
+
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "terminal.integrated.profiles.linux": {
+          "bash": { "path": "/bin/bash" }
+        },
+
+        "files.autoSave": "afterDelay",
+        "files.autoSaveDelay": 1000,
+
+        "files.exclude": {
+          "**/.*": true,
+          "**/.devcontainer": true,
+          "**/.vscode": true,
+          "**/.git": true,
+          "**/.github": true,
+          "**/.gitignore": true,
+          "**/requirements.txt": true,
+          "**/*.md": true,
+          "**/*.tex": true,
+          "**/content": true,
+          "**/__pycache__": true,
+          "**/*.pyc": true,
+          "**/validate_driver.txt": true
+        },
+
+        "github.copilot.enable": false,
+        "github.copilot-chat.enable": false,
+        "extensions.ignoreRecommendations": true,
+        "extensions.unwantedRecommendations": [
+          "GitHub.copilot",
+          "GitHub.copilot-chat"
+        ],
+
+        // Critical: stop background extension churn (main driver of corruption/install loops)
+        "extensions.autoUpdate": false,
+        "extensions.autoCheckUpdates": false,
+        "update.mode": "none",
+
+        // Make interpreter/kernel selection predictable
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.terminal.activateEnvironment": false,
+        "jupyter.jupyterServerType": "local",
+        "jupyter.defaultKernel": "ACME Python"
+      },
+
+      "extensions": [
+        "ms-python.python",
+        "ms-toolsai.jupyter",
+        "ms-toolsai.jupyter-keymap",
+        "ms-toolsai.jupyter-renderers",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  }
+}
