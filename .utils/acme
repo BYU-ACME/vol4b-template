@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# ACME course CLI — lightweight dispatcher for lint, check, and download_data.
+set -euo pipefail
+
+if [[ -z "${ACME_REPO_ROOT:-}" ]]; then
+  UTILS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  ACME_REPO_ROOT="$(cd "$UTILS_DIR/.." && pwd)"
+else
+  UTILS_DIR="${ACME_UTILS_DIR:-$ACME_REPO_ROOT/.utils}"
+fi
+
+usage() {
+  cat <<EOF
+Usage: acme <command> [args...]
+
+Commands:
+  lint FILE [FILE ...]       Lint Python or notebook files
+  check [--verbose]          Environment health check
+  download_data              Download lab data files
+EOF
+  exit 1
+}
+
+cmd="${1:-}"
+if [[ $# -gt 0 ]]; then
+  shift
+fi
+
+case "$cmd" in
+  lint)
+    exec lint "$@"
+    ;;
+  check)
+    exec python3 "$UTILS_DIR/check.py" "$@"
+    ;;
+  download_data|download-data)
+    exec python3 "$UTILS_DIR/download_data.py" "$@"
+    ;;
+  -h|--help|help)
+    usage
+    ;;
+  "")
+    usage
+    ;;
+  *)
+    echo "acme: unknown command '$cmd'" >&2
+    usage
+    ;;
+esac

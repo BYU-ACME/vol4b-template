@@ -1,0 +1,134 @@
+#!/usr/bin/env python3
+"""Lint .py and .ipynb files with flake8 / nbqa flake8."""
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+UTILS_DIR = Path(__file__).resolve().parent
+REPO_ROOT = UTILS_DIR.parent
+
+COLORS = {
+    "bold": "\x1b[1m",
+    "cyan": "\x1b[36m",
+    "red": "\x1b[31m",
+    "reset": "\x1b[m",
+}
+COLORS_OFF = {key: "" for key in COLORS}
+
+NBQA_RE = re.compile(
+    r"^(?P<path>.+):cell_(?P<cell>\d+):(?P<row>\d+):(?P<col>\d+): "
+    r"(?P<code>[A-Z]\d+) (?P<text>.+)$"
+)
+
+
+def _use_color():
+    return hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
+
+
+def _format_nbqa_line(line, *, color):
+    match = NBQA_RE.match(line.rstrip())
+    if not match:
+        return line
+
+    colors = COLORS if color else COLORS_OFF
+    data = match.groupdict()
+    return (
+        f"{colors['bold']}{data['path']}{colors['reset']}"
+        f"{colors['cyan']}:{colors['reset']}cell_{data['cell']}"
+        f"{colors['cyan']}:{colors['reset']}{data['row']}"
+        f"{colors['cyan']}:{colors['reset']}{data['col']}"
+        f"{colors['cyan']}:{colors['reset']}"
+        f" {colors['bold']}{colors['red']}{data['code']}{colors['reset']}"
+        f" {data['text']}"
+    )
+
+
+def _resolve_repo_root() -> Path:
+    if (REPO_ROOT / ".utils").is_dir():
+        return REPO_ROOT
+    cwd = Path.cwd().resolve()
+    for candidate in (cwd, *cwd.parents):
+        if (candidate / ".utils" / "lint").is_file():
+            return candidate
+    return REPO_ROOT
+
+
+def _flake8_config(file_path: Path, repo_root: Path) -> Path:
+    """Prefer a lab-local config, then fall back to .utils/."""
+    lab_dir = file_path.resolve().parent
+    for directory in (lab_dir, repo_root):
+        for name in ("flake8", ".flake8"):
+            config = directory / name
+            if config.is_file():
+                return config
+    return repo_root / ".utils" / "flake8"
+
+
+def _usage():
+    print(
+        "Usage: lint <file> [file ...]\n\n"
+        "  Lint .py files with flake8 and .ipynb files with nbqa flake8.\n"
+        "  Run from your repo root or pass paths relative to your cwd.",
+        file=sys.stderr,
+    )
+    return 1
+
+
+def _lint_py(path: Path, repo_root: Path):
+    directory = path.resolve().parent
+    config = _flake8_config(path, repo_root)
+    return subprocess.run(
+        ["flake8", f"--config={config.resolve()}", path.name],
+        cwd=directory,
+    ).returncode
+
+
+def _lint_ipynb(path: Path, repo_root: Path):
+    directory = path.resolve().parent
+    config = _flake8_config(path, repo_root)
+    result = subprocess.run(
+        ["nbqa", "flake8", path.name, f"--config={config.resolve()}"],
+        cwd=directory,
+        capture_output=True,
+        text=True,
+    )
+
+    color = _use_color()
+    if result.stdout:
+        for line in result.stdout.splitlines():
+            print(_format_nbqa_line(line, color=color))
+    if result.stderr:
+        print(result.stderr, file=sys.stderr, end="")
+    return result.returncode
+
+
+def _lint_file(path_str: str, repo_root: Path):
+    path = Path(path_str)
+    if not path.is_file() and not path.exists():
+        print(f"lint: {path_str}: No such file or directory", file=sys.stderr)
+        return 1
+
+    resolved = path.resolve()
+    if resolved.suffix == ".ipynb":
+        return _lint_ipynb(resolved, repo_root)
+    if resolved.suffix == ".py":
+        return _lint_py(resolved, repo_root)
+
+    print(f"lint: {path_str}: unsupported file type (use .py or .ipynb)", file=sys.stderr)
+    return 1
+
+
+def main(argv):
+    if len(argv) < 2:
+        return _usage()
+
+    repo_root = _resolve_repo_root()
+    status = 0
+    for path in argv[1:]:
+        status = _lint_file(path, repo_root) or status
+    return status
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

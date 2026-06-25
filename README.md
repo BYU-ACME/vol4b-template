@@ -11,6 +11,16 @@ All lab instructions, details, and submission guidelines are available on the [A
 
 For setup instructions, questions about your Docker container, or troubleshooting tips, visit the [Environment Setup Folder](https://labs.acme.byu.edu/EnvironmentSetup/EnvironmentSetup.html).
 
+## ACME Shell Commands
+
+Once your dev container is running, these commands are available in the terminal:
+
+- **`acme check`** — verify your environment is set up correctly
+- **`acme download_data`** — download shared lab data files
+- **`acme lint path/to/file.py`** — lint a `.py` or `.ipynb` file
+
+You will use these throughout the semester; your first lab submission will cover them in detail.
+
 ## Student Resources
 
 Find tips for a smooth ACME lab experience in the [Student Resources Folder](https://labs.acme.byu.edu/StudentResources/StudentResources.html).

@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 """Download lab data files into the student repository working tree."""
 
+import json
+import os
 import shutil
 import subprocess
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
+
+UTILS_DIR = Path(__file__).resolve().parent
+REPO_ROOT = UTILS_DIR.parent
 
 # Injected at publish time when using public data repositories.
 # DATA_VERSION matches byu.yml docker_image_tag (a branch name on the data repo).
@@ -13,11 +19,13 @@ DATA_VERSION = 'jun2026'
 
 # Publish-only stamp in public data repos (see repo_urls.DATA_VERSION_FILENAME).
 _DATA_VERSION_STAMP = "ACME_DATA_VERSION"
+_ACME_DIR = UTILS_DIR / "acme-data"
+_DATA_RECORD = _ACME_DIR / "data_record.json"
 
 
 def run(command, *, cwd=None):
     """Run a shell command and stop if it fails."""
-    subprocess.run(command, check=True, cwd=cwd)
+    subprocess.run(command, check=True, cwd=cwd or REPO_ROOT)
 
 
 def capture(command, *, cwd=None):
@@ -27,7 +35,7 @@ def capture(command, *, cwd=None):
         check=True,
         text=True,
         stdout=subprocess.PIPE,
-        cwd=cwd,
+        cwd=cwd or REPO_ROOT,
     )
     return result.stdout
 
@@ -80,6 +88,29 @@ def list_tracked_files(repo_dir: Path) -> list[str]:
     ]
 
 
+def ensure_acme_gitignored(gitignore_path: Path) -> None:
+    """Keep local ACME metadata (data pull record) out of git."""
+    update_gitignore(gitignore_path, [".utils/acme-data/"])
+
+
+def write_data_record(data_files: list[str], *, checkout_dir: Path | None = None) -> None:
+    """Record which data version was pulled and copy the upstream version stamp."""
+    _ACME_DIR.mkdir(parents=True, exist_ok=True)
+
+    if checkout_dir is not None:
+        stamp_src = checkout_dir / _DATA_VERSION_STAMP
+        if stamp_src.is_file():
+            shutil.copy2(stamp_src, _ACME_DIR / _DATA_VERSION_STAMP)
+
+    record = {
+        "data_version": DATA_VERSION,
+        "pulled_at": datetime.now(timezone.utc).isoformat(),
+        "source": DATA_REPO or "origin/data",
+        "file_count": len(data_files),
+    }
+    _DATA_RECORD.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+
+
 def pull_from_private_data_branch() -> list[str]:
     print("Fetching latest data branch from origin (your repo)...")
     run(["git", "fetch", "origin", "data"])
@@ -88,13 +119,13 @@ def pull_from_private_data_branch() -> list[str]:
     print("Refreshing data files from origin/data (overwriting local copies)...")
     run(["git", "checkout", "origin/data", "--", "."])
     run(["git", "restore", "--staged", "."])
+    write_data_record(data_files)
     return data_files
 
 
 def pull_from_public_data_repo() -> list[str]:
     print(f"Downloading data from {DATA_REPO} (version {DATA_VERSION})...")
 
-    workspace = Path.cwd()
     with tempfile.TemporaryDirectory(prefix="acme-data-") as tmp:
         checkout_dir = Path(tmp) / "data"
         run(
@@ -117,15 +148,18 @@ def pull_from_public_data_repo() -> list[str]:
             if not is_lab_data_path(rel_path):
                 continue
             src = checkout_dir / rel_path
-            dest = workspace / rel_path
+            dest = REPO_ROOT / rel_path
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dest)
+
+        write_data_record(data_files, checkout_dir=checkout_dir)
 
     return data_files
 
 
 def main():
-    gitignore_path = Path(".gitignore")
+    os.chdir(REPO_ROOT)
+    gitignore_path = REPO_ROOT / ".gitignore"
 
     if DATA_REPO:
         data_files = pull_from_public_data_repo()
@@ -134,6 +168,7 @@ def main():
 
     print("Updating .gitignore for data files...")
     update_gitignore(gitignore_path, data_files)
+    ensure_acme_gitignored(gitignore_path)
 
     print("\033[92m\nData successfully pulled!\n\033[0m")
 

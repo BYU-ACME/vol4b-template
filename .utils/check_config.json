@@ -1,0 +1,18 @@
+{
+  "python_version": "3.13",
+  "kernel_name": "acme",
+  "kernel_display_name": "ACME Python",
+  "import_packages": [
+    "numpy",
+    "matplotlib"
+  ],
+  "data_version": "jun2026",
+  "data_record_path": ".utils/acme-data/data_record.json",
+  "data_version_stamp_path": ".utils/acme-data/ACME_DATA_VERSION",
+  "vscode_extensions": {
+    "ms-toolsai.jupyter": {
+      "label": "Jupyter",
+      "soft": true
+    }
+  }
+}
