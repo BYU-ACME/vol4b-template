@@ -1,14 +1,16 @@
 {
   // Name and pull image
-  "name": "Vol 3 First Container",
-  "image": "ghcr.io/byu-acme/vol3-first-container:jun2026",
-  "containerName": "vol3-first-container",
+  "name": "Vol 4 Second Container",
+  "image": "ghcr.io/byu-acme/vol4-second-container:jun2026",
+  "containerName": "vol4-second-container",
+  "workspaceFolder": "/workspaces",
 
   // Run once on container creation: register a deterministic kernel.
   "postCreateCommand": "python -m ipykernel install --user --name acme --display-name \"ACME Python\" && (test -f .utils/install_completions.sh && bash .utils/install_completions.sh </dev/null || true)",
 
   // Run every start: safe.directory + refresh shell tools
   "postStartCommand": "git config --global --add safe.directory '*' || true; (test -f .utils/install_completions.sh && bash .utils/install_completions.sh </dev/null || true)",
+
 
   "customizations": {
     "vscode": {
@@ -46,10 +48,12 @@
           "GitHub.copilot-chat"
         ],
 
+        // Critical: stop background extension churn (main driver of corruption/install loops)
         "extensions.autoUpdate": false,
         "extensions.autoCheckUpdates": false,
         "update.mode": "none",
 
+        // Make interpreter/kernel selection predictable
         "python.defaultInterpreterPath": "/usr/local/bin/python",
         "python.terminal.activateEnvironment": false,
         "jupyter.jupyterServerType": "local",
