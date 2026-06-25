@@ -1,0 +1,7 @@
+# Keep LF line endings in the repo and on checkout (Linux container, bash).
+# Especially important when students clone on Windows before Reopen in Container.
+* text=auto eol=lf
+*.sh text eol=lf
+*.bash text eol=lf
+.utils/acme text eol=lf
+.utils/lint text eol=lf
