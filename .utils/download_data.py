@@ -88,11 +88,6 @@ def list_tracked_files(repo_dir: Path) -> list[str]:
     ]
 
 
-def ensure_acme_gitignored(gitignore_path: Path) -> None:
-    """Keep local ACME metadata (data pull record) out of git."""
-    update_gitignore(gitignore_path, [".utils/acme-data/"])
-
-
 def write_data_record(data_files: list[str], *, checkout_dir: Path | None = None) -> None:
     """Record which data version was pulled and copy the upstream version stamp."""
     _ACME_DIR.mkdir(parents=True, exist_ok=True)
@@ -168,7 +163,6 @@ def main():
 
     print("Updating .gitignore for data files...")
     update_gitignore(gitignore_path, data_files)
-    ensure_acme_gitignored(gitignore_path)
 
     print("\033[92m\nData successfully pulled!\n\033[0m")
 

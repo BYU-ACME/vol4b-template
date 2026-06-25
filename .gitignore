@@ -86,3 +86,4 @@ shutdown_vsce.sh
 *.jpeg
 
 # Lab data files --------------------------------------------------------------
+.utils/acme-data/
